@@ -1,25 +1,32 @@
 package main
-import ("bufio"; "errors"; "fmt"; "os"; "strconv")
-
-func validateAge(s string) (int, error) {
-    // implement
-		n, err := strconv.Atoi(s)
-		if err != nil {
-			return 0, fmt.Errorf("parse: %w", err)
-		} else if n < 0 {
-			return 0, errors.New("negative")
-		} else {
-    return n, nil
-	  }
-}
-
+import ("bufio"; "fmt"; "os"; "strconv"; "strings"; "sync")
 func main() {
     sc := bufio.NewScanner(os.Stdin)
-    sc.Scan()
-    age, err := validateAge(sc.Text())
-    if err != nil {
-        fmt.Printf("error: %s\n", err.Error())
-    } else {
-        fmt.Printf("age: %d\n", age)
-    }
+    sc.Scan(); n, _ := strconv.Atoi(sc.Text())
+    sc.Scan(); fields := strings.Fields(sc.Text())
+    nums := make([]int, n)
+    for i, f := range fields { nums[i], _ = strconv.Atoi(f) }
+    // split into 4 chunks, goroutine each, sum total
+    var wg sync.WaitGroup
+    var total int
+    var mu sync.Mutex
+		chunk := (n + 3) / 4
+		for i := 0; i < 4; i++ {
+			start, end := i * chunk, (i+1) * chunk
+			if start > n { start = n}
+			if end > n { end = n}
+			wg.Add(1)
+			go func(subSlice []int) {
+				defer wg.Done()
+				localsum := 0
+				for _, value := range subSlice {
+					localsum += value
+				}
+				mu.Lock()
+				total += localsum
+				mu.Unlock()
+			}(nums[start:end])
+		}
+		wg.Wait()
+    fmt.Println(total)  // replace with the real total
 }
