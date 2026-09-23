@@ -1,32 +1,27 @@
 package main
-import ("bufio"; "fmt"; "os"; "strconv"; "strings"; "sync")
+import ("bufio"; "fmt"; "os"; "strconv"; "strings")
 func main() {
     sc := bufio.NewScanner(os.Stdin)
-    sc.Scan(); n, _ := strconv.Atoi(sc.Text())
-    sc.Scan(); fields := strings.Fields(sc.Text())
-    nums := make([]int, n)
-    for i, f := range fields { nums[i], _ = strconv.Atoi(f) }
-    // split into 4 chunks, goroutine each, sum total
-    var wg sync.WaitGroup
-    var total int
-    var mu sync.Mutex
-		chunk := (n + 3) / 4
-		for i := 0; i < 4; i++ {
-			start, end := i * chunk, (i+1) * chunk
-			if start > n { start = n}
-			if end > n { end = n}
-			wg.Add(1)
-			go func(subSlice []int) {
-				defer wg.Done()
-				localsum := 0
-				for _, value := range subSlice {
-					localsum += value
-				}
-				mu.Lock()
-				total += localsum
-				mu.Unlock()
-			}(nums[start:end])
-		}
-		wg.Wait()
-    fmt.Println(total)  // replace with the real total
+    sc.Scan()
+    fields := strings.Fields(sc.Text())
+    a := make(chan int)
+    b := make(chan int)
+    go func() {
+        defer close(a)
+        for _, f := range fields {
+            n, _ := strconv.Atoi(f)
+            // TODO: send n into channel a
+            a <- n
+        }
+    }()
+    go func() {
+        defer close(b)
+        for n := range a {
+            // TODO: send the square of n into channel b
+            b <- n * n
+        }
+    }()
+    sum := 0
+    for v := range b { sum += v }
+    fmt.Println(sum)
 }
